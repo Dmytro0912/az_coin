@@ -1,0 +1,15 @@
+node_modules
+
+.openzeppelin
+artifacts
+cache
+
+yarn\.lock
+
+\.env
+
+flatten/
+
+\.env\.bak
+
+package-lock.json
