@@ -52,7 +52,9 @@ describe("Math test", function () {
     dbg("Math deployed to:", math.address);
 
     Core = await ethers.getContractFactory("Core");
-    core = await upgrades.deployProxy(Core, [reinforcement, oracle.address, marginality, math.address]);
+    // modified at 02/07/2022
+    // removed reinforcement parameter
+    core = await upgrades.deployProxy(Core, [oracle.address, marginality, math.address]);
     dbg("core deployed to:", core.address);
     await core.deployed();
 

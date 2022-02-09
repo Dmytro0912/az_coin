@@ -44,13 +44,16 @@ contract Core is OwnableUpgradeable, ICore {
 
     uint256 public decimals;
     mapping(address => bool) public oracles;
-    uint256 public conditionsReinforcementFix; // should be 20k
+    // modofied at 02/07/2022
+    // removed conditionsReinforcementFix varailble
+    // uint256 public conditionsReinforcementFix; // should be 20k
     mapping(address => bool) public maintainers;
     uint256 public conditionsMargin;
 
     // updated 02/04/2022
-    // reinforcement for specific outcomes pair(present odd number)
+    // reinforcement for specific outcomes
     mapping(uint256 => uint256) public reinforcements;
+    
     address public lpAddress;
     address public mathAddress;
 
@@ -67,10 +70,10 @@ contract Core is OwnableUpgradeable, ICore {
     // updated 02/04/2022
     /**
      * @dev trigger event when reinforcement is changed
-     * outcomeId - id for outcomes pair
-     * reinforcement - reinforcement for specific outcomes pair
+     * outcome - first element of outcomes array
+     * reinforcement - reinforcement for specific outcomes
     */ 
-    event ReinforcementChanged(uint256 outcomeId, uint256 reinforcement);
+    event ReinforcementChanged(uint256 outcome, uint256 reinforcement);
 
     modifier onlyOracle() {
         _require(oracles[msg.sender], Errors.ONLY_ORACLE);
@@ -86,11 +89,13 @@ contract Core is OwnableUpgradeable, ICore {
         _;
     }
 
+    // modified at 02/07/2022
+    // removed reinforcement_ parameter
     /**
      * init
      */
     function initialize(
-        uint256 reinforcement_,
+        // uint256 reinforcement_,
         address oracle_,
         uint256 margin_,
         address math_
@@ -98,7 +103,7 @@ contract Core is OwnableUpgradeable, ICore {
         __Ownable_init();
         oracles[oracle_] = true;
         conditionsMargin = margin_; // in decimals ^9
-        conditionsReinforcementFix = reinforcement_; // in token decimals
+        // conditionsReinforcementFix = reinforcement_; // in token decimals
         decimals = 10**9;
         mathAddress = math_;
     }
@@ -127,28 +132,25 @@ contract Core is OwnableUpgradeable, ICore {
         _require(timestamp > 0, Errors.TIMESTAMP_CAN_NOT_BE_ZERO);
         _require(
             ILP(lpAddress).getPossibilityOfReinforcement(
-                conditionsReinforcementFix
+                reinforcements[outcomes[0]]
             ),
             Errors.NOT_ENOUGH_LIQUIDITY
         );
-        // updated 02/04/2022
-        // checks  if reinforcement is correct
-        require(reinforcements[outcomes[0]] == conditionsReinforcementFix, "reinforcement is not correct");
         Condition storage newCondition = conditions[oracleConditionID];
         _require(newCondition.timestamp == 0, Errors.CONDITION_ALREADY_SET);
 
         newCondition.fundBank[0] =
-            (conditionsReinforcementFix * odds[1]) /
+            (reinforcements[outcomes[0]] * odds[1]) /
             (odds[0] + odds[1]);
         newCondition.fundBank[1] =
-            (conditionsReinforcementFix * odds[0]) /
+            (reinforcements[outcomes[0]] * odds[0]) /
             (odds[0] + odds[1]);
 
         newCondition.outcomes = outcomes;
-        newCondition.reinforcement = conditionsReinforcementFix;
+        newCondition.reinforcement = reinforcements[outcomes[0]];
         newCondition.timestamp = timestamp;
         newCondition.ipfsHash = ipfsHash;
-        ILP(lpAddress).lockReserve(conditionsReinforcementFix);
+        ILP(lpAddress).lockReserve(reinforcements[outcomes[0]]);
 
         // save new condition link
         newCondition.margin = conditionsMargin; //not used yet
@@ -441,13 +443,22 @@ contract Core is OwnableUpgradeable, ICore {
         }
     }
 
-    function getCurrentReinforcement()
+    // modified at 02/08/2022
+    // changed getCurrentReinforcement function name to getReinforcementByOutcomeId
+    // also same change in ICore.sol
+    /**
+     * @dev get reinforcement value for specifical outcomes
+     * @param _outcomes - outcomes array
+     * @return reforcement for specific _outcomes
+     */  
+    function getReinforcementByOutcomes(uint256[2] memory _outcomes)
         external
         view
         override
         returns (uint256)
     {
-        return conditionsReinforcementFix;
+        require(_outcomes[0] > 0 && _outcomes[1] > 0, "invalid outcomes");
+        return reinforcements[_outcomes[0]];
     }
 
     function addMaintainer(address maintainer, bool active) external onlyOwner {
@@ -521,13 +532,12 @@ contract Core is OwnableUpgradeable, ICore {
 
     /**
      * @dev set reinforcement for specific outcomes pair
-     * @param _outcomeId - one of outcomes pair(must odd number)
+     * @param _outcomes - outcomes array
      * @param _reinforcement - reinforcement value to set
      */
-    function setReinforcement(uint256 _outcomeId, uint256 _reinforcement) external onlyOwner {
-        require(_outcomeId > 0, "outcomeId must great than 0");
-        require((_outcomeId % 2) == 1, "outcomeId must odd number");
-        reinforcements[_outcomeId] = _reinforcement;
-        emit ReinforcementChanged(_outcomeId, reinforcements[_outcomeId]);
+    function setReinforcement(uint256[2] memory _outcomes, uint256 _reinforcement) external onlyOwner {
+        require(_outcomes[0] > 0 && _outcomes[1] > 0, "invalid outcomes");
+        reinforcements[_outcomes[0]] = _reinforcement;
+        emit ReinforcementChanged(_outcomes[0], reinforcements[_outcomes[0]]);
     }
 }

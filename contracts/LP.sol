@@ -352,12 +352,14 @@ contract LP is ERC20Upgradeable, OwnableUpgradeable {
             (reinforcementAbility * totalReserve) / oddsDecimals);
     }
 
-    function getPossibilityOfReinforcementFromCore()
+    // modified at 02/08/2022
+    // add _outcomes parameter
+    function getPossibilityOfReinforcementFromCore(uint256[2] memory _outcomes)
         external
         view
         returns (bool status)
     {
-        uint256 reinforcementAmount = ICore(core).getCurrentReinforcement();
+        uint256 reinforcementAmount = ICore(core).getReinforcementByOutcomes(_outcomes);
         return (lockedLiquidity + reinforcementAmount <=
             (reinforcementAbility * totalReserve) / oddsDecimals);
     }

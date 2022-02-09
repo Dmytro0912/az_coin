@@ -66,7 +66,9 @@ describe("Core test", function () {
 
     dbg("Math deployed to:", math.address);
     Core = await ethers.getContractFactory("Core");
-    core = await upgrades.deployProxy(Core, [reinforcement, oracle.address, marginality, math.address]);
+    // modified at 02/07/2022
+    // removed reinforcement parameter
+    core = await upgrades.deployProxy(Core, [oracle.address, marginality, math.address]);
     dbg("core deployed to:", core.address);
     await core.deployed();
 
@@ -75,9 +77,9 @@ describe("Core test", function () {
     // setting up
     await core.connect(owner).setLP(lp.address);
     await core.connect(owner).addMaintainer(mainteiner.address, true);
-    // updated 02/04/2022
+    // updated 02/09/2022
     // add setReinforcement function
-    await core.setReinforcement(OUTCOMEWIN, reinforcement);
+    await core.setReinforcement([OUTCOMEWIN, OUTCOMELOSE], reinforcement);
     await lp.changeCore(core.address);
     const approveAmount = constants.WeiPerEther.mul(9999999);
 
@@ -474,7 +476,7 @@ describe("Core test", function () {
       let funds = await core.getConditionFunds(condID);
       expect(funds[0]).to.be.equal(funds[1]);
       // after condition created, fund[0] and fund[1] are equal 1/2 of conditionsReinforcementFix
-      expect(funds[0]).to.be.equal((await core.conditionsReinforcementFix()).div(2));
+      expect(funds[0]).to.be.equal((await core.reinforcements(OUTCOMEWIN)).div(2));
     });
     it("Should view/return funds from canceled condition", async () => {
       condID++;

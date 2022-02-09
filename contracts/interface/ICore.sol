@@ -31,7 +31,7 @@ interface ICore {
 
     function setLP(address lpAddress_) external;
 
-    function getCurrentReinforcement() external view returns (uint256);
+    function getReinforcementByOutcomes(uint256[2] memory outcomes) external view returns (uint256);
 
     function putBet(
         uint256 conditionID,
