@@ -1,11 +1,10 @@
 node_modules
-
-.openzeppelin
 artifacts
 cache
-
+bin
 yarn\.lock
-
+.openzeppelin
+.vscode
 \.env
 
 flatten/
