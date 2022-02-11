@@ -6,7 +6,7 @@ yarn\.lock
 .openzeppelin
 .vscode
 \.env
-
+docs
 flatten/
 
 \.env\.bak
