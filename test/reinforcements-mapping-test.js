@@ -4,11 +4,6 @@ const { expect, assert } = require("chai");
 const { constants, utils, BigNumber } = require("ethers");
 const { ethers, network } = require("hardhat");
 const { getRandomConditionID, getBlockTime, timeShift } = require("../utils/utils");
-const {
-  BN,           // Big Number support e.g. new BN(1)
-  expectEvent,  // Assertions for emitted events
-  expectRevert, // Assertions for transactions that should fail
-} = require('@openzeppelin/test-helpers');
 const dbg = require("debug")("test:reinforcement");
 
 const ONE_WEEK = 604800;

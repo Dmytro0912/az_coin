@@ -127,12 +127,13 @@ contract Core is OwnableUpgradeable, ICore {
         uint256 timestamp,
         bytes32 ipfsHash
     ) external override onlyOracle {
+        uint256 currentReinforcement = reinforcements[outcomes[0]];
         // condition must be ended before next phase end date
         _require(timestamp < ILP(lpAddress).phase2end(), Errors.DISTANT_FUTURE);
         _require(timestamp > 0, Errors.TIMESTAMP_CAN_NOT_BE_ZERO);
         _require(
             ILP(lpAddress).getPossibilityOfReinforcement(
-                reinforcements[outcomes[0]]
+                currentReinforcement
             ),
             Errors.NOT_ENOUGH_LIQUIDITY
         );
@@ -140,17 +141,17 @@ contract Core is OwnableUpgradeable, ICore {
         _require(newCondition.timestamp == 0, Errors.CONDITION_ALREADY_SET);
 
         newCondition.fundBank[0] =
-            (reinforcements[outcomes[0]] * odds[1]) /
+            (currentReinforcement * odds[1]) /
             (odds[0] + odds[1]);
         newCondition.fundBank[1] =
-            (reinforcements[outcomes[0]] * odds[0]) /
+            (currentReinforcement * odds[0]) /
             (odds[0] + odds[1]);
 
         newCondition.outcomes = outcomes;
-        newCondition.reinforcement = reinforcements[outcomes[0]];
+        newCondition.reinforcement = currentReinforcement;
         newCondition.timestamp = timestamp;
         newCondition.ipfsHash = ipfsHash;
-        ILP(lpAddress).lockReserve(reinforcements[outcomes[0]]);
+        ILP(lpAddress).lockReserve(currentReinforcement);
 
         // save new condition link
         newCondition.margin = conditionsMargin; //not used yet
