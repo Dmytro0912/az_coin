@@ -53,6 +53,11 @@ contract Core is OwnableUpgradeable, ICore {
     // updated 02/04/2022
     // reinforcement for specific outcomes
     mapping(uint256 => uint256) public reinforcements;
+
+    // updated 02/12/2022
+    // margin for specific outcomes
+    mapping(uint256 => uint256) public margins;
+
     
     address public lpAddress;
     address public mathAddress;
@@ -74,6 +79,14 @@ contract Core is OwnableUpgradeable, ICore {
      * reinforcement - reinforcement for specific outcomes
     */ 
     event ReinforcementChanged(uint256 outcome, uint256 reinforcement);
+    
+    // updated 02/12/2022
+    /**
+     * @dev trigger event when margin is changed 
+     * outcome - first element of outcomes array
+     * margin - margin for specific outcomes
+    */ 
+    event MarginChanged(uint256 outcome, uint256 margin);
 
     modifier onlyOracle() {
         _require(oracles[msg.sender], Errors.ONLY_ORACLE);
@@ -97,12 +110,12 @@ contract Core is OwnableUpgradeable, ICore {
     function initialize(
         // uint256 reinforcement_,
         address oracle_,
-        uint256 margin_,
+        // uint256 margin_,
         address math_
     ) public virtual initializer {
         __Ownable_init();
         oracles[oracle_] = true;
-        conditionsMargin = margin_; // in decimals ^9
+        //conditionsMargin = margin_; // in decimals ^9
         // conditionsReinforcementFix = reinforcement_; // in token decimals
         decimals = 10**9;
         mathAddress = math_;
@@ -128,7 +141,7 @@ contract Core is OwnableUpgradeable, ICore {
         bytes32 ipfsHash
     ) external override onlyOracle {
         uint256 currentReinforcement = reinforcements[outcomes[0]];
-        // condition must be ended before next phase end date
+       // condition must be ended before next phase end date
         _require(timestamp < ILP(lpAddress).phase2end(), Errors.DISTANT_FUTURE);
         _require(timestamp > 0, Errors.TIMESTAMP_CAN_NOT_BE_ZERO);
         _require(
@@ -154,7 +167,7 @@ contract Core is OwnableUpgradeable, ICore {
         ILP(lpAddress).lockReserve(currentReinforcement);
 
         // save new condition link
-        newCondition.margin = conditionsMargin; //not used yet
+        newCondition.margin = margins[outcomes[0]]; //not used yet
         newCondition.state = conditionState.CREATED;
         emit ConditionCreated(oracleConditionID, timestamp);
     }
@@ -462,6 +475,24 @@ contract Core is OwnableUpgradeable, ICore {
         return reinforcements[_outcomes[0]];
     }
 
+    // modified at 02/12/2022
+    // also same change in ICore.sol
+    /**
+     * @dev get Margin value for specifical outcomes
+     * @param _outcomes - outcomes array
+     * @return margin for specific _outcomes
+     */  
+    function getMarginByOutcomes(uint256[2] memory _outcomes)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        require(_outcomes[0] > 0 && _outcomes[1] > 0, "invalid outcomes");
+        return margins[_outcomes[0]];
+    }
+
+   
     function addMaintainer(address maintainer, bool active) external onlyOwner {
         maintainers[maintainer] = active;
     }
@@ -541,4 +572,16 @@ contract Core is OwnableUpgradeable, ICore {
         reinforcements[_outcomes[0]] = _reinforcement;
         emit ReinforcementChanged(_outcomes[0], reinforcements[_outcomes[0]]);
     }
+
+    /**
+     * @dev set reinforcement for specific outcomes pair
+     * @param _outcomes - outcomes array
+     * @param _margin - reinforcement value to set
+     */
+    function setMargin(uint256[2] memory _outcomes, uint256 _margin) external onlyOwner {
+        require(_outcomes[0] > 0 && _outcomes[1] > 0, "invalid outcomes");
+        margins[_outcomes[0]] = _margin;
+        emit MarginChanged(_outcomes[0], margins[_outcomes[0]]);
+    }
+
 }

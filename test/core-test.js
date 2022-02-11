@@ -68,7 +68,7 @@ describe("Core test", function () {
     Core = await ethers.getContractFactory("Core");
     // modified at 02/07/2022
     // removed reinforcement parameter
-    core = await upgrades.deployProxy(Core, [oracle.address, marginality, math.address]);
+    core = await upgrades.deployProxy(Core, [oracle.address, math.address]);
     dbg("core deployed to:", core.address);
     await core.deployed();
 
@@ -80,6 +80,12 @@ describe("Core test", function () {
     // updated 02/09/2022
     // add setReinforcement function
     await core.setReinforcement([OUTCOMEWIN, OUTCOMELOSE], reinforcement);
+
+    // updated 02/12/2022
+    // add setMargin function
+    await core.setMargin([OUTCOMEWIN, OUTCOMELOSE], marginality);
+
+
     await lp.changeCore(core.address);
     const approveAmount = constants.WeiPerEther.mul(9999999);
 

@@ -57,7 +57,7 @@ describe("Reinforcements mapping test", function () {
     Core = await ethers.getContractFactory("Core");
     // modified at 02/07/2022
     // removed reinforcement parameter
-    core = await upgrades.deployProxy(Core, [oracle.address, marginality, math.address]);
+    core = await upgrades.deployProxy(Core, [oracle.address, math.address]);
     dbg("core deployed to:", core.address);
     await core.deployed();
 
@@ -73,6 +73,9 @@ describe("Reinforcements mapping test", function () {
 
     const liquidity = constants.WeiPerEther.mul(2000000);
     await lp.addLiquidity(liquidity);
+    // updated 02/12/2022
+    // add setMargin function
+    await core.setMargin([OUTCOMEWIN, OUTCOMELOSE], marginality);
   });
   it("Should add different reinforcement values for each outcomes", async () => {
     // call setReinforcement function to set values to reinforcements mapping

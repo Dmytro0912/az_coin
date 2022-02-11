@@ -33,6 +33,8 @@ interface ICore {
 
     function getReinforcementByOutcomes(uint256[2] memory outcomes) external view returns (uint256);
 
+    function getMarginByOutcomes(uint256[2] memory outcomes) external view returns (uint256);
+
     function putBet(
         uint256 conditionID,
         uint256 amount,

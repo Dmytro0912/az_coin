@@ -1,3 +1,5 @@
+// updated 02/07/2022
+// author dmytro K
 const { expect, assert } = require("chai");
 const { constants, utils, BigNumber } = require("ethers");
 const { ethers, network } = require("hardhat");
@@ -6,10 +8,7 @@ const dbg = require("debug")("test:reinforcement");
 
 const ONE_WEEK = 604800;
 
-const OUTCOMEWIN = 1;
-const OUTCOMELOSE = 2;
-
-describe("Reinforcement limit test", function () {
+describe("Margins mapping test", function () {
   // redeploy
   const reinforcement = constants.WeiPerEther.mul(20000); // 10%
   const marginality = 50000000; // 5%
@@ -17,12 +16,16 @@ describe("Reinforcement limit test", function () {
 
   const pool1 = 5000000;
   const pool2 = 5000000;
-
+  const OUTCOMEWIN = 1;
+  const OUTCOMELOSE = 2;
+  let condID = 0;
+  let outcomes = [[1, 2], [3, 4], [29, 40]];
+  let margins = [10, 7.5, 5];
   before(async () => {
     [owner, adr1, lpOwner, oracle] = await ethers.getSigners();
 
     now = await getBlockTime(ethers);
-
+    
     // test USDT
     Usdt = await ethers.getContractFactory("TestERC20");
     usdt = await Usdt.deploy();
@@ -53,8 +56,8 @@ describe("Reinforcement limit test", function () {
     dbg("Math deployed to:", math.address);
 
     Core = await ethers.getContractFactory("Core");
-    // modified at 02/07/2022
-    // removed reinforcement parameter
+    // modified at 02/12/2022
+    // removed reinforcement param and margin param
     core = await upgrades.deployProxy(Core, [oracle.address, math.address]);
     dbg("core deployed to:", core.address);
     await core.deployed();
@@ -63,12 +66,6 @@ describe("Reinforcement limit test", function () {
 
     // setting up
     await core.connect(owner).setLP(lp.address);
-    // updated 02/09/2022
-    // add setReinforcement function
-    await core.setReinforcement([OUTCOMEWIN, OUTCOMELOSE], reinforcement);
-    // updated 02/12/2022
-    // add setMargin function
-    await core.setMargin([OUTCOMEWIN, OUTCOMELOSE], marginality);
     await lp.changeCore(core.address);
     const approveAmount = constants.WeiPerEther.mul(9999999);
 
@@ -77,35 +74,56 @@ describe("Reinforcement limit test", function () {
 
     const liquidity = constants.WeiPerEther.mul(2000000);
     await lp.addLiquidity(liquidity);
+    
   });
-  it("Should check reinforcement limits", async function () {
-    let condID = 3454364475358;
-    fund1Should = reinforcement.mul(pool1).div(pool1 + pool2);
-    for (let i = 0; i < 50; i++) {
-      condID++;
-      await core
+  it("Should add different margin values for each outcomes", async () => {
+    // call setMargin function to set values to margins mapping
+    // for simplicity, make 3 pair of outcomes and their margin .
+   
+    for(let i = 0; i < outcomes.length; i++)
+    {
+
+      margins[i] = margins[i] * (10 ** 7);
+     await core.setReinforcement(outcomes[i], reinforcement);
+     let tx = await core.setMargin(outcomes[i], margins[i]);
+     let receipt = await tx.wait();
+     let evnt = receipt.events.filter((x) => {
+       return x.event == "MarginChanged";
+     });
+     expect(evnt[0].args[0]).to.equal(outcomes[i][0]);
+     expect(evnt[0].args[1]).to.equal(margins[i]);
+     
+     //console.log("outcomes", outcomes[i], " = ", evnt[0].args[1]);
+
+    }
+
+    
+  });
+  it("Should make conditions with different outcomeId", async () => {
+    for(let i = 0; i < outcomes.length; i++){
+    condID++;
+    await 
+      core
         .connect(oracle)
         .createCondition(
           condID,
           [pool2, pool1],
-          [OUTCOMEWIN, OUTCOMELOSE],
+          outcomes[i],
           now + 3600,
           ethers.utils.formatBytes32String("ipfs")
         );
       let condition = await core.getCondition(condID);
-      expect(condition.fundBank[0]).to.equal(fund1Should);
+      expect(
+        await core.getMarginByOutcomes(outcomes[i])
+      ).to.equal(condition.margin);
     }
-    let condID2 = 6579767;
-    await expect(
-      core
-        .connect(oracle)
-        .createCondition(
-          condID2,
-          [pool2, pool1],
-          [OUTCOMEWIN, OUTCOMELOSE],
-          now + 3600,
-          ethers.utils.formatBytes32String("ipfs")
-        )
-    ).to.be.revertedWith("AZU#064");
-  }); 
+  });
+  it("values of outcomes should be great than 0", async () => {
+      await expect(
+        core.setMargin([0, 1], reinforcement)
+      ).to.be.revertedWith("invalid outcomes");
+      await expect(
+        core.getMarginByOutcomes([1, 0])
+      ).to.be.revertedWith("invalid outcomes");
+  });
 });
