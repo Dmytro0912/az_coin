@@ -56,8 +56,8 @@ describe("Margins mapping test", function () {
     dbg("Math deployed to:", math.address);
 
     Core = await ethers.getContractFactory("Core");
-    // modified at 02/12/2022
-    // removed reinforcement param and margin param
+    // modified at 02/07/2022
+    // removed reinforcement parameter
     core = await upgrades.deployProxy(Core, [oracle.address, math.address]);
     dbg("core deployed to:", core.address);
     await core.deployed();
@@ -75,6 +75,9 @@ describe("Margins mapping test", function () {
     const liquidity = constants.WeiPerEther.mul(2000000);
     await lp.addLiquidity(liquidity);
     
+    // updated 02/08/2022
+    // add setReinforcement function
+    await core.setReinforcement([OUTCOMEWIN, OUTCOMELOSE], reinforcement);
   });
   it("Should add different margin values for each outcomes", async () => {
     // call setMargin function to set values to margins mapping
@@ -90,7 +93,8 @@ describe("Margins mapping test", function () {
      let evnt = receipt.events.filter((x) => {
        return x.event == "MarginChanged";
      });
-     expect(evnt[0].args[0]).to.equal(outcomes[i][0]);
+     expect(evnt[0].args[0][0]).to.equal(outcomes[i][0]);
+     expect(evnt[0].args[0][1]).to.equal(outcomes[i][1]);
      expect(evnt[0].args[1]).to.equal(margins[i]);
      
      //console.log("outcomes", outcomes[i], " = ", evnt[0].args[1]);
@@ -120,7 +124,7 @@ describe("Margins mapping test", function () {
   });
   it("values of outcomes should be great than 0", async () => {
       await expect(
-        core.setMargin([0, 1], reinforcement)
+        core.setMargin([0, 1], marginality)
       ).to.be.revertedWith("invalid outcomes");
       await expect(
         core.getMarginByOutcomes([1, 0])

@@ -91,7 +91,8 @@ describe("Reinforcements mapping test", function () {
         return x.event == "ReinforcementChanged";
       });
       // check event
-      expect(evnt[0].args[0]).to.equal((count * 2) + 1);
+      expect(evnt[0].args[0][0]).to.equal((count * 2) + 1);
+      expect(evnt[0].args[0][1]).to.equal((count * 2) + 2);
       expect(evnt[0].args[1]).to.equal(originalValue);
       // originalValue + 5000
       originalValue = BigNumber.from(originalValue).add(constants.WeiPerEther.mul(5000));

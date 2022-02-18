@@ -482,7 +482,7 @@ describe("Core test", function () {
       let funds = await core.getConditionFunds(condID);
       expect(funds[0]).to.be.equal(funds[1]);
       // after condition created, fund[0] and fund[1] are equal 1/2 of conditionsReinforcementFix
-      expect(funds[0]).to.be.equal((await core.reinforcements(OUTCOMEWIN)).div(2));
+      expect(funds[0]).to.be.equal((await core.reinforcements(OUTCOMEWIN, OUTCOMELOSE)).div(2));
     });
     it("Should view/return funds from canceled condition", async () => {
       condID++;
